@@ -1,0 +1,16 @@
+.idea
+.dub
+docs.json
+__dummy.html
+docs/
+/fffd
+fffd.so
+fffd.dylib
+fffd.dll
+fffd.a
+fffd.lib
+fffd-test-*
+*.exe
+*.o
+*.obj
+*.lst

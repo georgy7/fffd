@@ -1,0 +1,13 @@
+{
+	"authors": [
+		"Георгий Устинов"
+	],
+	"copyright": "Copyright © 2020, Георгий Устинов",
+	"dependencies": {
+		"dlib": "~>0.18.0",
+		"numir": "~>2.0.2"
+	},
+	"description": "D port of flood_fill_filter.",
+	"license": "zlib",
+	"name": "fffd"
+}
