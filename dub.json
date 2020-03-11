@@ -4,10 +4,13 @@
 	],
 	"copyright": "Copyright © 2020, Георгий Устинов",
 	"dependencies": {
+		"fluent-asserts": "~>0.12.5",
 		"dlib": "~>0.18.0",
-		"numir": "~>2.0.2"
+		"mir-algorithm": "~>3.7.19"
 	},
 	"description": "D port of flood_fill_filter.",
 	"license": "zlib",
-	"name": "fffd"
+	"name": "fffd",
+
+	"mainSourceFile": "source/app.d"
 }
