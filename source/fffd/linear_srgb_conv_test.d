@@ -845,9 +845,9 @@ version (unittest)
         auto expected = repeat(1f, 4).array.sliced(1, 1, 4);
         auto rgba = repeat(255f, 4).array.sliced(1, 1, 4);
 
-        auto result = to_linear(rgba);
-        expected.length.should.equal(result.length, "test_white_to_linear: shape");
-        true.should.equal(equal!allclose(expected, result), "test_white_to_linear: values");
+        auto result = toLinear(rgba);
+        result.length.should.equal(expected.length, "test_white_to_linear: shape");
+        equal!allclose(expected, result).should.equal(true, "test_white_to_linear: values");
         writeln("Test - white to linear: Ok.");
     }
 
@@ -861,9 +861,9 @@ version (unittest)
         auto expected = repeat(0f, 4).array.sliced(1, 1, 4);
         auto rgba = repeat(0f, 4).array.sliced(1, 1, 4);
 
-        auto result = to_linear(rgba);
-        expected.length.should.equal(result.length, "test_black_to_linear: shape");
-        true.should.equal(equal!allclose(expected, result), "test_black_to_linear: values");
+        auto result = toLinear(rgba);
+        result.length.should.equal(expected.length, "test_black_to_linear: shape");
+        equal!allclose(expected, result).should.equal(true, "test_black_to_linear: values");
         writeln("Test - black to linear: Ok.");
     }
 
@@ -877,9 +877,9 @@ version (unittest)
         auto expected = [0.212f, 0.212f, 0.212f, 0.5f].sliced(1, 1, 4);
         auto rgba = repeat(127f, 4).array.sliced(1, 1, 4);
 
-        auto result = to_linear(rgba);
-        expected.length.should.equal(result.length, "test_grey_to_linear: shape");
-        true.should.equal(equal!allclose_atol_001(expected, result), "test_grey_to_linear: values");
+        auto result = toLinear(rgba);
+        result.length.should.equal(expected.length, "test_grey_to_linear: shape");
+        equal!allclose_atol_001(expected, result).should.equal(true, "test_grey_to_linear: values");
         writeln("Test - grey to linear: Ok.");
     }
 
@@ -893,9 +893,9 @@ version (unittest)
         Slice!(float*, 3) im = getRainbowSrgbTestData();
         Slice!(float*, 3) expected = getRainbowLinearTestData();
 
-        auto result = to_linear(im);
-        expected.length.should.equal(result.length, "test_rainbow_to_linear: shape");
-        true.should.equal(equal!allclose_atol_000001(expected, result), "test_rainbow_to_linear: values");
+        auto result = toLinear(im);
+        result.length.should.equal(expected.length, "test_rainbow_to_linear: shape");
+        equal!allclose_atol_000001(expected, result).should.equal(true, "test_rainbow_to_linear: values");
         writeln("Test - rainbow to linear: Ok.");
     }
 
@@ -909,9 +909,9 @@ version (unittest)
         Slice!(float*, 3) source = getRainbowLinearTestData();
         Slice!(float*, 3) expected = getRainbowSrgbTestData();
 
-        auto result = from_linear(source);
-        expected.length.should.equal(result.length, "test_rainbow_from_linear: shape");
-        true.should.equal(equal!allclose_atol_000001(expected, result), "test_rainbow_from_linear: values");
+        auto result = fromLinear(source);
+        result.length.should.equal(expected.length, "test_rainbow_from_linear: shape");
+        equal!allclose_atol_000001(expected, result).should.equal(true, "test_rainbow_from_linear: values");
         writeln("Test - rainbow from linear: Ok.");
     }
 
@@ -923,11 +923,11 @@ version (unittest)
         import std.stdio;
 
         Slice!(float*, 3) im = getRainbowSrgbTestData();
-        Slice!(float*, 3) im_linear = to_linear(im);
-        Slice!(float*, 3) result = from_linear(im_linear);
+        Slice!(float*, 3) im_linear = toLinear(im);
+        Slice!(float*, 3) result = fromLinear(im_linear);
 
-        im.length.should.equal(result.length, "test_rainbow: shape");
-        true.should.equal(equal!allclose_atol_000001(im, result), "test_rainbow: values");
+        result.length.should.equal(im.length, "test_rainbow: shape");
+        equal!allclose_atol_000001(im, result).should.equal(true, "test_rainbow: values");
         writeln("Test - rainbow: Ok.");
     }
 }
