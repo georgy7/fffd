@@ -5,7 +5,14 @@ import mir.ndslice.slice;
 
 private auto srgbToLinear(float cbNumber) @safe
 {
+    assert(cbNumber >= 0.0);
+    assert(cbNumber <= 255.0);
+
     auto c = cbNumber / 255.0;
+
+    assert(c >= 0.0);
+    assert(c <= 1.0);
+
     auto a = 0.055;
     if (c <= 0.04045)
     {
@@ -13,7 +20,12 @@ private auto srgbToLinear(float cbNumber) @safe
     }
     else
     {
-        return pow((c + a) / (1 + a), 2.4);
+        auto result = pow((c + a) / (1 + a), 2.4);
+
+        assert(result >= 0.0);
+        assert(result <= 1.0);
+
+        return result;
     }
 }
 
