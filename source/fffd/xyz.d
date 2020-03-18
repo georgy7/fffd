@@ -8,15 +8,15 @@ import fffd.adjacent_matrix_holder : Offset;
 
 class Xyz
 {
-    private Slice!(float*, 2) yXYZ;
-    private Slice!(float*, 2) xXYZ;
-    private Slice!(float*, 2) zXYZ;
+    private const Slice!(immutable(float)*, 2) yXYZ;
+    private const Slice!(immutable(float)*, 2) xXYZ;
+    private const Slice!(immutable(float)*, 2) zXYZ;
 
     this(Slice!(float*, 2) yXYZ, Slice!(float*, 2) xXYZ, Slice!(float*, 2) zXYZ) @safe
     {
-        this.yXYZ = yXYZ;
-        this.xXYZ = xXYZ;
-        this.zXYZ = zXYZ;
+        this.yXYZ = yXYZ.idup;
+        this.xXYZ = xXYZ.idup;
+        this.zXYZ = zXYZ.idup;
     }
 
     ~this()
@@ -28,13 +28,17 @@ class Xyz
         return yXYZ.length!dimension;
     }
 
-    const BitMap makeEqualityMasks(ubyte kernelMargin, float yThreshold, in Offset[] offsets) @safe
+    const BitMap makeEqualityMasks(in ubyte kernelMargin, in float yThreshold, in Offset[] offsets)
     {
         import std.conv;
         import std.algorithm;
 
         import mir.algorithm.iteration;
         import std.math;
+        import std.parallelism;
+        import std.range : iota, enumerate;
+        import std.array : array;
+        import std.typecons;
 
         const int h = to!int(this.length!0);
         const int w = to!int(this.length!1);
@@ -52,33 +56,90 @@ class Xyz
         assert(maxVal(this.xXYZ) <= 1.0);
         assert(maxVal(this.zXYZ) <= 1.089);
 
-        foreach (y; 0 .. h)
+        immutable Tuple!(int, Offset)[] iOffsets = offsets.enumerate
+                .filter!(iOffset => (0 != iOffset[1].y) || (0 != iOffset[1].x))
+                .map!(iOffset => immutable(Tuple!(int, Offset))(to!int(iOffset[0]), iOffset[1]))
+                .array;
+
+        const auto xThreshold1 = min(kernelMargin + 1, w);
+        const auto xThreshold2 = max(xThreshold1, w - 1 - kernelMargin);
+
+        foreach (y; parallel(iota(0, h)))
         {
-            foreach (x; 0 .. w)
+            if ((y <= kernelMargin) || (y >= h - 1 - kernelMargin))
             {
-                foreach (offsetIndex; 0 .. offsets.length)
+                foreach (x; 0 .. w)
                 {
-                    const Offset offset = offsets[offsetIndex];
-
-                    if ((0 == offset.y) && (0 == offset.x))
+                    foreach (iOffset; iOffsets)
                     {
-                        continue;
+                        const int outboundY2 = y - iOffset[1].y;
+                        const int outboundX2 = x - iOffset[1].x;
+
+                        const int yToCompare = min(max(0, outboundY2), (h - 1));
+                        const int xToCompare = min(max(0, outboundX2), (w - 1));
+
+                        const bool invertLightness = (outboundY2 != yToCompare) != (outboundX2 != xToCompare); // logical XOR
+
+                        if (this.eq(y, x, yToCompare, xToCompare, yThreshold, invertLightness))
+                        {
+                            result.setTrue(y, x, iOffset[0]);
+                        }
                     }
-
-                    int outboundY2 = y - offset.y;
-                    int outboundX2 = x - offset.x;
-
-                    int yToCompare = min(max(0, outboundY2), (h - 1));
-                    int xToCompare = min(max(0, outboundX2), (w - 1));
-
-                    bool invertLightness = (outboundY2 != yToCompare) != (outboundX2 != xToCompare); // logical XOR
-
-                    if (this.eq(y, x, yToCompare, xToCompare, yThreshold, invertLightness))
-                    {
-                        result.setTrue(y, x, to!int(offsetIndex));
-                    }
-
                 }
+            }
+            else
+            {
+                foreach (x; 0 .. xThreshold1)
+                {
+                    foreach (iOffset; iOffsets)
+                    {
+                        const int yToCompare = y - iOffset[1].y;
+                        const int outboundX2 = x - iOffset[1].x;
+
+                        const int xToCompare = min(max(0, outboundX2), (w - 1));
+                        const bool invertLightness = (outboundX2 != xToCompare);
+
+                        if (this.eq(y, x, yToCompare, xToCompare, yThreshold, invertLightness))
+                        {
+                            result.setTrue(y, x, iOffset[0]);
+                        }
+
+                    }
+                }
+
+                foreach (x; xThreshold1 .. xThreshold2)
+                {
+                    foreach (iOffset; iOffsets)
+                    {
+                        const int yToCompare = y - iOffset[1].y;
+                        const int xToCompare = x - iOffset[1].x;
+
+                        if (this.eq(y, x, yToCompare, xToCompare, yThreshold, false))
+                        {
+                            result.setTrue(y, x, iOffset[0]);
+                        }
+
+                    }
+                }
+
+                foreach (x; xThreshold2 .. w)
+                {
+                    foreach (iOffset; iOffsets)
+                    {
+                        const int yToCompare = y - iOffset[1].y;
+                        const int outboundX2 = x - iOffset[1].x;
+
+                        const int xToCompare = min(max(0, outboundX2), (w - 1));
+                        const bool invertLightness = (outboundX2 != xToCompare);
+
+                        if (this.eq(y, x, yToCompare, xToCompare, yThreshold, invertLightness))
+                        {
+                            result.setTrue(y, x, iOffset[0]);
+                        }
+
+                    }
+                }
+
             }
         }
 
@@ -86,24 +147,29 @@ class Xyz
     }
 
     const bool eq(in int y, in int x, in int y2, in int x2, in float yThreshold,
-            in bool invertLightness) @safe
+            in bool invertLightness) @safe nothrow @nogc
     {
         import std.math;
+
+        const auto yy = this.yXYZ[y, x];
+        const auto xx = this.xXYZ[y, x];
+        const auto zz = this.zXYZ[y, x];
+        const auto yy2 = this.yXYZ[y2, x2];
+        const auto xx2 = this.xXYZ[y2, x2];
+        const auto zz2 = this.zXYZ[y2, x2];
 
         const int chromaThresholdFactor = 4;
         const float tf = yThreshold * chromaThresholdFactor;
 
-        const float l2 = this.yXYZ[y2, x2];
-        const float probablyInvertedLightness = invertLightness ? (-l2) : l2;
-        const bool yEqual = abs(this.yXYZ[y, x] - probablyInvertedLightness) < yThreshold;
+        const float probablyInvertedLightness = invertLightness ? (-yy2) : yy2;
+        const bool yEqual = abs(yy - probablyInvertedLightness) < yThreshold;
 
-        const auto xd = abs(this.xXYZ[y, x] - this.xXYZ[y2, x2]);
-        const auto zd = abs(this.zXYZ[y, x] - this.zXYZ[y2, x2]);
+        const auto xd = abs(xx - xx2);
+        const auto zd = abs(zz - zz2);
 
         return yEqual && ((xd < tf && zd < tf) // Close chroma.
-                 || (this.yXYZ[y, x] <= (25.0f / 255.0f) || this.yXYZ[y2, x2] <= (25.0f / 255.0f)) // Both too dark.
-                 || ((this.yXYZ[y, x] > 0.5f || this.yXYZ[y2, x2] > 0.5f)
-                && (xd < tf * 2) && (zd < tf * 2)) // Both bright and a little close chroma.
+                 || (yy <= (25.0f / 255.0f) || yy2 <= (25.0f / 255.0f)) // Both too dark.
+                 || ((yy > 0.5f || yy2 > 0.5f) && (xd < tf * 2) && (zd < tf * 2)) // Both bright and a little close chroma.
         );
     }
 }
@@ -166,7 +232,7 @@ version (unittest)
     import std.typecons;
     import std.format;
 
-    void makeEqualityMasksTest(string csvString, string csvOffsets, Slice!(float*, 3) linearRgba) @safe
+    void makeEqualityMasksTest(string csvString, string csvOffsets, Slice!(float*, 3) linearRgba)
     {
         const int kernelMargin = 4;
         const int kernelDiameter = kernelMargin + 1 + kernelMargin;
@@ -209,6 +275,9 @@ version (unittest)
                     maskOffsetIndex = to!int(i);
                 }
             }
+
+            assert(maskOffsetIndex >= 0);
+            assert(maskOffsetIndex <= 127);
 
             if (1 == theValueFromCsv)
             {

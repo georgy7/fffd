@@ -8,6 +8,8 @@
 		"dlib": "~>0.18.0",
 		"mir-algorithm": "~>3.7.19"
 	},
+	"dflags-ldc": ["-mcpu=native"],
+
 	"description": "D port of flood_fill_filter.",
 	"license": "zlib",
 	"name": "fffd",

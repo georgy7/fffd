@@ -14,15 +14,15 @@ Slice!(float*, 3) readLinear(string filePath)
     ImageRGBA8 image = convert!ImageRGBA8(loadImage(filePath));
     auto im = slice!float(image.height, image.width, 4);
 
-    foreach (x; image.row)
+    foreach (y; image.col)
     {
-        foreach (y; image.col)
+        foreach (x; image.row)
         {
-            Color4 color4 = image.getPixel(x, y);
-            im[y, x, 0] = color4[0];
-            im[y, x, 1] = color4[1];
-            im[y, x, 2] = color4[2];
-            im[y, x, 3] = color4[3];
+            const auto index = (y * image.width + x) * 4;
+            im[y, x, 0] = image.data()[index];
+            im[y, x, 1] = image.data()[index + 1];
+            im[y, x, 2] = image.data()[index + 2];
+            im[y, x, 3] = image.data()[index + 3];
         }
     }
 
@@ -98,7 +98,7 @@ private void filterChunk(in BitMap equalityMasks, in ubyte kernelMargin,
 }
 
 BoolMatrix filter(Slice!(float*, 3) linearRgba, float yThreshold,
-        ubyte kernelMargin, float ratioThreshold, bool denoise) @safe
+        ubyte kernelMargin, float ratioThreshold, bool denoise)
 {
     Xyz originalImage = xyzFromLinearRgba(linearRgba);
     BoolMatrix firstPass = onePass(originalImage, yThreshold, kernelMargin, ratioThreshold);
@@ -120,7 +120,7 @@ BoolMatrix filter(Slice!(float*, 3) linearRgba, float yThreshold,
     }
 }
 
-BoolMatrix onePass(Xyz xyz, float yThreshold, ubyte kernelMargin, float ratioThreshold) @safe
+BoolMatrix onePass(Xyz xyz, float yThreshold, ubyte kernelMargin, float ratioThreshold)
 {
     assert(xyz !is null);
 
@@ -189,17 +189,19 @@ void save(immutable BoolMatrix boolMatrix, in string filename)
 
     ImageL8 result = new ImageL8(to!uint(boolMatrix.length!1), to!uint(boolMatrix.length!0));
 
-    foreach (x; result.row)
+    foreach (y; result.col)
     {
-        foreach (y; result.col)
+        foreach (x; result.row)
         {
+            const auto index = (y * result.width + x);
+
             if (boolMatrix[y, x])
             {
-                result.setPixel(Color4(255, 255, 255, 255), x, y);
+                result.data()[index] = cast(ubyte)255;
             }
             else
             {
-                result.setPixel(Color4(0, 0, 0, 255), x, y);
+                result.data()[index] = cast(ubyte)0;
             }
         }
     }

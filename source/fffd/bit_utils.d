@@ -54,50 +54,47 @@ pure int bitCount(immutable Bitmask m) @safe nothrow @nogc
     return bitCount(m.a[0] + m.a[1]);
 }
 
-pure void setTrue(ref Bitmask m, in int index) @safe nothrow @nogc
+private ulong[] makeBitArray64() @safe
 {
-    const int aIndex = index / 64;
+    ulong[] result = new ulong[64];
 
     ulong bit = 0b1UL;
-    foreach (i; 1 .. ((index % 64) + 1))
+    result[0] = bit;
+
+    static foreach (i; 1 .. 64)
     {
         bit *= 2;
+        result[i] = bit;
     }
 
-    m.a[aIndex] |= bit;
+    return result;
 }
 
-pure void setFalse(ref Bitmask m, in int index) @safe nothrow @nogc
+private enum bits = makeBitArray64();
+
+void setTrue(ref Bitmask m, in int index) @safe nothrow
 {
     const int aIndex = index / 64;
-
-    ulong bit = 0b1UL;
-    foreach (i; 1 .. ((index % 64) + 1))
-    {
-        bit *= 2;
-    }
-
-    m.a[aIndex] &= (~bit);
+    m.a[aIndex] |= bits[index % 64];
 }
 
-pure bool isSet(in Bitmask m, in int index) @safe nothrow @nogc
+void setFalse(ref Bitmask m, in int index) @safe nothrow
 {
     const int aIndex = index / 64;
+    m.a[aIndex] &= (~bits[index % 64]);
+}
 
-    ulong bit = 0b1UL;
-    foreach (i; 1 .. ((index % 64) + 1))
-    {
-        bit *= 2;
-    }
-
-    return m.a[aIndex] == (m.a[aIndex] | bit);
+bool isSet(in Bitmask m, in int index) @safe nothrow
+{
+    const int aIndex = index / 64;
+    return m.a[aIndex] == (m.a[aIndex] | bits[index % 64]);
 }
 
 pure string toBinaryString(in Bitmask m) @safe
 {
     import std.conv;
     import std.format;
-    return format("%032b %032b", m.a[0], m.a[1]);
+    return format("%064b %064b", m.a[0], m.a[1]);
 }
 
 class BitMap
@@ -136,7 +133,8 @@ class BitMap
         return this.w;
     }
 
-    void setTrue(in int y, in int x, in int index) @safe @nogc {
+    void setTrue(in int y, in int x, in int index) @safe
+    {
         data[this.w * y + x].setTrue(index);
     }
 }
