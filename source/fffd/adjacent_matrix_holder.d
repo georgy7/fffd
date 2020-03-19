@@ -1,3 +1,21 @@
+/*
+    fffd - edge bunches detection tool.
+    Copyright (C) 2020  Georgy Ustinov  <georgy.ustinov.hello@gmail.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 module fffd.adjacent_matrix_holder;
 
 import fffd.bit_utils;
@@ -16,6 +34,9 @@ class AdjacentMatrixHolder
     private Offset[] offsets;
 
     private Bitmask originMask;
+    private Bitmask notOriginMask;
+
+    private Bitmask originResult;
 
     this(ubyte kernelMargin) @safe
     {
@@ -79,10 +100,20 @@ class AdjacentMatrixHolder
             }
         }
 
-        assert(this.matrix[0].notZero());
+        assert(this.matrix[0].nonZero());
 
-        int offsets_origin = to!int(this.offsets.length) / 2;
-        this.originMask.setTrue(offsets_origin);
+        int offsetsOrigin = to!int(this.offsets.length) / 2;
+        this.originMask.setTrue(offsetsOrigin);
+
+        for (int i = 0; i < this.offsets.length; i++)
+        {
+            if (i != offsetsOrigin)
+            {
+                this.notOriginMask.setTrue(i);
+            }
+        }
+
+        this.originResult = this.getOrResultInner(this.originMask);
     }
 
     const Bitmask getOriginMask() @safe
@@ -91,12 +122,28 @@ class AdjacentMatrixHolder
         return this.originMask;
     }
 
+    const Bitmask getNotOriginMask() @safe
+    {
+        // struct copy
+        return this.notOriginMask;
+    }
+
     const Offset[] getOffsets() @safe
     {
         return this.offsets.dup;
     }
 
     const Bitmask getOrResult(in Bitmask thisStepResult) @safe
+    {
+        if (this.originMask == thisStepResult)
+        {
+            return this.originResult;
+        }
+
+        return getOrResultInner(thisStepResult);
+    }
+
+    private const Bitmask getOrResultInner(in Bitmask thisStepResult) @safe
     {
         Bitmask result;
 

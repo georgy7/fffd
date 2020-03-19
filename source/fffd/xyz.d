@@ -1,3 +1,21 @@
+/*
+    fffd - edge bunches detection tool.
+    Copyright (C) 2020  Georgy Ustinov  <georgy.ustinov.hello@gmail.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 module fffd.xyz;
 
 import fffd.bit_utils;
@@ -7,14 +25,26 @@ import mir.ndslice;
 import fffd.adjacent_matrix_holder : Offset;
 import std.typecons;
 
+alias BoolMatrix = Slice!(immutable(bool)*, 2);
+
 class Xyz
 {
-    private const Slice!(immutable(float)*, 2) yXYZ;
-    private const Slice!(immutable(float)*, 2) xXYZ;
-    private const Slice!(immutable(float)*, 2) zXYZ;
+    private const Nullable!(BoolMatrix) boolLightness;
+    private const Nullable!(Slice!(immutable(float)*, 2)) yXYZ;
+    private const Nullable!(Slice!(immutable(float)*, 2)) xXYZ;
+    private const Nullable!(Slice!(immutable(float)*, 2)) zXYZ;
+
+    this(BoolMatrix boolLightness) @safe
+    {
+        this.boolLightness = boolLightness;
+        this.yXYZ = Nullable!(Slice!(immutable(float)*, 2)).init;
+        this.xXYZ = Nullable!(Slice!(immutable(float)*, 2)).init;
+        this.zXYZ = Nullable!(Slice!(immutable(float)*, 2)).init;
+    }
 
     this(Slice!(float*, 2) yXYZ, Slice!(float*, 2) xXYZ, Slice!(float*, 2) zXYZ) @safe
     {
+        this.boolLightness = Nullable!(BoolMatrix).init;
         this.yXYZ = yXYZ.idup;
         this.xXYZ = xXYZ.idup;
         this.zXYZ = zXYZ.idup;
@@ -26,7 +56,14 @@ class Xyz
 
     const @property @safe size_t length(size_t dimension)()
     {
-        return yXYZ.length!dimension;
+        if (this.yXYZ.isNull)
+        {
+            return this.boolLightness.length!dimension;
+        }
+        else
+        {
+            return this.yXYZ.length!dimension;
+        }
     }
 
     private const immutable(Tuple!(int, Offset, int, Offset))[] makeOffsetsWithReverse(immutable Tuple!(int, Offset)[] iOffsets)
@@ -61,23 +98,10 @@ class Xyz
 
         BitMap result = new BitMap(h, w, kernelMargin);
 
-        alias maxVal = (a) => mir.algorithm.iteration.reduce!fmax(-float.infinity, a);
-        alias minVal = (a) => mir.algorithm.iteration.reduce!fmin(float.infinity, a);
-
-        assert(minVal(this.yXYZ) >= 0.0);
-        assert(minVal(this.xXYZ) >= 0.0);
-        assert(minVal(this.zXYZ) >= 0.0);
-
-        assert(maxVal(this.yXYZ) <= 1.0);
-        assert(maxVal(this.xXYZ) <= 1.0);
-        assert(maxVal(this.zXYZ) <= 1.089);
-
         immutable Tuple!(int, Offset)[] iOffsets = offsets.enumerate
                 .filter!(iOffset => (0 != iOffset[1].y) || (0 != iOffset[1].x))
                 .map!(iOffset => immutable(Tuple!(int, Offset))(to!int(iOffset[0]), iOffset[1]))
                 .array;
-
-        immutable Tuple!(int, Offset, int, Offset)[] iOffsetsWithReverse = makeOffsetsWithReverse(iOffsets);
 
         const auto xThreshold1 = min(kernelMargin + 1, w);
         const auto xThreshold2 = max(xThreshold1, w - 1 - kernelMargin);
@@ -162,6 +186,8 @@ class Xyz
 
         version (unittest)
         {
+            immutable Tuple!(int, Offset, int, Offset)[] iOffsetsWithReverse = makeOffsetsWithReverse(iOffsets);
+
             foreach (y; 0 .. h)
             {
                 if ((y <= kernelMargin) || (y >= h - 1 - kernelMargin))
@@ -188,28 +214,46 @@ class Xyz
         return result;
     }
 
-    const bool eq(in int y, in int x, in int y2, in int x2, in float yThreshold,
+    const pure bool eq(in int y, in int x, in int y2, in int x2, in float yThreshold,
             in bool invertLightness) @safe nothrow @nogc
     {
         import std.math;
 
+        if (this.yXYZ.isNull)
+        {
+            if (invertLightness)
+            {
+                return this.boolLightness[y, x] != this.boolLightness[y2, x2];
+            }
+            else
+            {
+                return this.boolLightness[y, x] == this.boolLightness[y2, x2];
+            }
+        }
+
         const auto yy = this.yXYZ[y, x];
+        const auto yy2 = this.yXYZ[y2, x2];
+
+        const float probablyInvertedLightness = invertLightness ? (-yy2 + 1.0) : yy2;
+        const bool yEqual = abs(yy - probablyInvertedLightness) < yThreshold;
+
+        if (!yEqual) {
+            return false;
+        }
+
         const auto xx = this.xXYZ[y, x];
         const auto zz = this.zXYZ[y, x];
-        const auto yy2 = this.yXYZ[y2, x2];
+
         const auto xx2 = this.xXYZ[y2, x2];
         const auto zz2 = this.zXYZ[y2, x2];
 
         const int chromaThresholdFactor = 4;
         const float tf = yThreshold * chromaThresholdFactor;
 
-        const float probablyInvertedLightness = invertLightness ? (-yy2) : yy2;
-        const bool yEqual = abs(yy - probablyInvertedLightness) < yThreshold;
-
         const auto xd = abs(xx - xx2);
         const auto zd = abs(zz - zz2);
 
-        return yEqual && ((xd < tf && zd < tf) // Close chroma.
+        return ((xd < tf && zd < tf) // Close chroma.
                  || (yy <= (25.0f / 255.0f) || yy2 <= (25.0f / 255.0f)) // Both too dark.
                  || ((yy > 0.5f || yy2 > 0.5f) && (xd < tf * 2) && (zd < tf * 2)) // Both bright and a little close chroma.
         );

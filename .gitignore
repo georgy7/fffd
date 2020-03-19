@@ -1,5 +1,6 @@
 .idea
 .dub
+dub.selections.json
 docs.json
 __dummy.html
 docs/
@@ -14,3 +15,7 @@ fffd-test-*
 *.o
 *.obj
 *.lst
+
+profiling_info.txt
+trace.def
+trace.log

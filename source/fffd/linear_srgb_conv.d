@@ -1,3 +1,21 @@
+/*
+    fffd - edge bunches detection tool.
+    Copyright (C) 2020  Georgy Ustinov  <georgy.ustinov.hello@gmail.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 module fffd.linear_srgb_conv;
 
 import std.math;
@@ -64,10 +82,10 @@ Slice!(float*, 3) toLinear(Slice!(float*, 3) rgba)
     foreach (i; parallel(iota(0, rows)))
     foreach (j; 0 .. columns)
     {
-        result[i][j][0] = srgbToLinear(rgba[i][j][0]);
-        result[i][j][1] = srgbToLinear(rgba[i][j][1]);
-        result[i][j][2] = srgbToLinear(rgba[i][j][2]);
-        result[i][j][3] = rgba[i][j][3] / 255.0;
+        result[i, j, 0] = srgbToLinear(rgba[i, j, 0]);
+        result[i, j, 1] = srgbToLinear(rgba[i, j, 1]);
+        result[i, j, 2] = srgbToLinear(rgba[i, j, 2]);
+        result[i, j, 3] = rgba[i, j, 3] / 255.0;
     }
 
     return result;
@@ -84,10 +102,10 @@ Slice!(float*, 3) fromLinear(Slice!(float*, 3) linearRgba)
     foreach (i; 0 .. rows)
     foreach (j; 0 .. columns)
     {
-        result[i][j][0] = linearToSrgb(linearRgba[i][j][0]);
-        result[i][j][1] = linearToSrgb(linearRgba[i][j][1]);
-        result[i][j][2] = linearToSrgb(linearRgba[i][j][2]);
-        result[i][j][3] = floatToByte(linearRgba[i][j][3]);
+        result[i, j, 0] = linearToSrgb(linearRgba[i, j, 0]);
+        result[i, j, 1] = linearToSrgb(linearRgba[i, j, 1]);
+        result[i, j, 2] = linearToSrgb(linearRgba[i, j, 2]);
+        result[i, j, 3] = floatToByte(linearRgba[i, j, 3]);
     }
 
     return result;
