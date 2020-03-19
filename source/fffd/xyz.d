@@ -5,6 +5,7 @@ import fffd.bit_utils;
 import std.bitmanip;
 import mir.ndslice;
 import fffd.adjacent_matrix_holder : Offset;
+import std.typecons;
 
 class Xyz
 {
@@ -28,6 +29,22 @@ class Xyz
         return yXYZ.length!dimension;
     }
 
+    private const immutable(Tuple!(int, Offset, int, Offset))[] makeOffsetsWithReverse(immutable Tuple!(int, Offset)[] iOffsets)
+    {
+        import std.algorithm;
+        import std.array : array;
+
+        immutable(Tuple!(int, Offset, int, Offset))[] result = [];
+
+        foreach (a; iOffsets)
+        {
+            auto reverseOffset = iOffsets.filter!(r => (a[1].y == -r[1].y) && (a[1].x == -r[1].x)).array[0];
+            result ~= immutable(Tuple!(int, Offset, int, Offset))(a[0], a[1], reverseOffset[0], reverseOffset[1]);
+        }
+
+        return result;
+    }
+
     const BitMap makeEqualityMasks(in ubyte kernelMargin, in float yThreshold, in Offset[] offsets)
     {
         import std.conv;
@@ -38,7 +55,6 @@ class Xyz
         import std.parallelism;
         import std.range : iota, enumerate;
         import std.array : array;
-        import std.typecons;
 
         const int h = to!int(this.length!0);
         const int w = to!int(this.length!1);
@@ -60,6 +76,8 @@ class Xyz
                 .filter!(iOffset => (0 != iOffset[1].y) || (0 != iOffset[1].x))
                 .map!(iOffset => immutable(Tuple!(int, Offset))(to!int(iOffset[0]), iOffset[1]))
                 .array;
+
+        immutable Tuple!(int, Offset, int, Offset)[] iOffsetsWithReverse = makeOffsetsWithReverse(iOffsets);
 
         const auto xThreshold1 = min(kernelMargin + 1, w);
         const auto xThreshold2 = max(xThreshold1, w - 1 - kernelMargin);
@@ -118,7 +136,6 @@ class Xyz
                         {
                             result.setTrue(y, x, iOffset[0]);
                         }
-
                     }
                 }
 
@@ -140,6 +157,31 @@ class Xyz
                     }
                 }
 
+            }
+        }
+
+        version (unittest)
+        {
+            foreach (y; 0 .. h)
+            {
+                if ((y <= kernelMargin) || (y >= h - 1 - kernelMargin))
+                {
+                    continue;
+                }
+
+                foreach (x; xThreshold1 .. xThreshold2)
+                {
+                    foreach (iOffsetWithReverse; iOffsetsWithReverse)
+                    {
+                        const int yToCompare = y - iOffsetWithReverse[1].y;
+                        const int xToCompare = x - iOffsetWithReverse[1].x;
+
+                        auto s1 = result[y, x].isSet(iOffsetWithReverse[0]);
+                        auto s2 = result[yToCompare, xToCompare].isSet(iOffsetWithReverse[2]);
+
+                        assert(s1 == s2, format("%d %d", y, x));
+                    }
+                }
             }
         }
 

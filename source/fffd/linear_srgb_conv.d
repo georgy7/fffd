@@ -3,7 +3,10 @@ module fffd.linear_srgb_conv;
 import std.math;
 import mir.ndslice.slice;
 
-private auto srgbToLinear(float cbNumber) @safe
+import std.parallelism;
+import std.range : iota;
+
+private pure auto srgbToLinear(float cbNumber) @safe nothrow @nogc
 {
     assert(cbNumber >= 0.0);
     assert(cbNumber <= 255.0);
@@ -58,7 +61,7 @@ Slice!(float*, 3) toLinear(Slice!(float*, 3) rgba)
     auto columns = rgba.length!1;
     auto result = repeat(0f, (rows * columns * 4)).array.sliced(rows, columns, 4);
 
-    foreach (i; 0 .. rows)
+    foreach (i; parallel(iota(0, rows)))
     foreach (j; 0 .. columns)
     {
         result[i][j][0] = srgbToLinear(rgba[i][j][0]);

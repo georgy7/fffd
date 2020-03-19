@@ -7,6 +7,9 @@ import fffd.xyz;
 import fffd.bit_utils;
 import fffd.adjacent_matrix_holder;
 
+import std.parallelism;
+import std.range : iota;
+
 alias BoolMatrix = Slice!(immutable(bool)*, 2);
 
 Slice!(float*, 3) readLinear(string filePath)
@@ -52,7 +55,7 @@ private int lrtb(in int coordinate, in int size, in ubyte kernel_margin) @safe
 
 private void filterChunk(in BitMap equalityMasks, in ubyte kernelMargin,
         in AdjacentMatrixHolder adjacencyMartixHolder, in float ratioThreshold,
-        Slice!(bool*, 2) result) @safe
+        Slice!(bool*, 2) result)
 {
     import std.conv;
 
@@ -62,7 +65,7 @@ private void filterChunk(in BitMap equalityMasks, in ubyte kernelMargin,
     immutable int h = equalityMasks.getH();
     immutable int w = equalityMasks.getW();
 
-    foreach (y; 0 .. h)
+    foreach (y; parallel(iota(0, h)))
     {
         const int yi = y;
 
