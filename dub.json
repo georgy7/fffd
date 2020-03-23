@@ -3,7 +3,7 @@
 		"Георгий Устинов"
 	],
 	"copyright": "Copyright © 2020, Георгий Устинов",
-	"license": "GNU AGPL 3",
+	"license": "AGPL-3.0",
 
 	"description": "D port of flood-fill-filter pip package.",
 
@@ -13,6 +13,7 @@
 	"dependencies": {
 		"imageformats": "~>7.0.2",
 		"mir-algorithm": "~>3.7.19",
+		"darg": "~>0.1.0",
 		"fluent-asserts": "~>0.12.5"
 	},
 

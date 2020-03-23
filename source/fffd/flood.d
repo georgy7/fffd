@@ -28,6 +28,10 @@ import fffd.adjacent_matrix_holder;
 import std.parallelism;
 import std.range : iota;
 
+import std.conv;
+import std.algorithm.searching : endsWith;
+import std.uni : toLower;
+
 Slice!(float*, 3) readLinear(string filePath)
 {
     //import core.time : MonoTime;
@@ -141,16 +145,49 @@ BoolMatrix onePass(Xyz xyz, float yThreshold, ubyte kernelMargin, float ratioThr
     return floodFillResult.idup;
 }
 
-void save(immutable BoolMatrix boolMatrix, in string filename)
+private bool hasExtensionOfSupportedFormatsToWriteInRgbOnly(in string filename)
 {
-    import std.conv;
+    return filename.toLower().endsWith(".bmp");
+}
 
-    //import core.time : MonoTime;
-    //import std.stdio;
-    //import std.format;
-    //
-    //MonoTime before = MonoTime.currTime;
+private bool hasExtensionOfSupportedFormatsToWriteInY(in string filename)
+{
+    return filename.toLower().endsWith(".tga");
+}
 
+private auto buildRgb(immutable BoolMatrix boolMatrix) @safe
+{
+    auto height = to!int(boolMatrix.length!0);
+    auto width = to!int(boolMatrix.length!1);
+
+    auto buffer = new ubyte[height * width * 3];
+
+    foreach (y; 0 .. height)
+    {
+        foreach (x; 0 .. width)
+        {
+            const auto index = (y * width + x) * 3;
+
+            if (boolMatrix[y, x])
+            {
+                buffer[index] = cast(ubyte)255;
+                buffer[index + 1] = cast(ubyte)255;
+                buffer[index + 2] = cast(ubyte)255;
+            }
+            else
+            {
+                buffer[index] = cast(ubyte)0;
+                buffer[index + 1] = cast(ubyte)0;
+                buffer[index + 2] = cast(ubyte)0;
+            }
+        }
+    }
+
+    return buffer;
+}
+
+private auto buildY(immutable BoolMatrix boolMatrix) @safe
+{
     auto height = to!int(boolMatrix.length!0);
     auto width = to!int(boolMatrix.length!1);
 
@@ -160,20 +197,49 @@ void save(immutable BoolMatrix boolMatrix, in string filename)
     {
         foreach (x; 0 .. width)
         {
+            const auto index = y * width + x;
+
             if (boolMatrix[y, x])
             {
-                const auto index = y * width + x;
                 buffer[index] = cast(ubyte)255;
             }
             else
             {
-                const auto index = y * width + x;
                 buffer[index] = cast(ubyte)0;
             }
         }
     }
 
-    write_png(filename, width, height, buffer, ColFmt.Y);
+    return buffer;
+}
+
+void save(immutable BoolMatrix boolMatrix, in string filename)
+{
+    //import core.time : MonoTime;
+    //import std.stdio;
+    //import std.format;
+    //
+    //MonoTime before = MonoTime.currTime;
+
+    auto height = to!int(boolMatrix.length!0);
+    auto width = to!int(boolMatrix.length!1);
+
+    if (hasExtensionOfSupportedFormatsToWriteInRgbOnly(filename))
+    {
+        auto buffer = buildRgb(boolMatrix);
+        write_image(filename, width, height, buffer, ColFmt.RGB);
+    }
+    else if (hasExtensionOfSupportedFormatsToWriteInY(filename))
+    {
+        auto buffer = buildY(boolMatrix);
+        write_image(filename, width, height, buffer, ColFmt.Y);
+    }
+    else
+    {
+        // To support files both with extension and without it.
+        auto buffer = buildY(boolMatrix);
+        write_png(filename, width, height, buffer, ColFmt.Y);
+    }
 
     //MonoTime after = MonoTime.currTime;
     //writeln(format("Image saved in %s", to!string(after - before)));
