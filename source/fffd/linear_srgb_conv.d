@@ -19,10 +19,11 @@
 module fffd.linear_srgb_conv;
 
 import std.math;
-import mir.ndslice.slice;
+import mir.ndslice;
 
 import std.parallelism;
 import std.range : iota;
+import imageformats;
 
 private pure auto srgbToLinear(float cbNumber) @safe nothrow @nogc
 {
@@ -71,24 +72,57 @@ float linearToSrgb(float lin)
     return floatToByte(linearToSrgbGammaCorrection(lin));
 }
 
-Slice!(float*, 3) toLinear(Slice!(float*, 3) rgba)
+Slice!(float*, 3) toLinear(IFImage rgba8)
 {
     import std.range;
 
-    auto rows = rgba.length!0;
-    auto columns = rgba.length!1;
-    auto result = repeat(0f, (rows * columns * 4)).array.sliced(rows, columns, 4);
+    Slice!(float*, 3) result = slice!float(rgba8.h, rgba8.w, 4);
 
-    foreach (i; parallel(iota(0, rows)))
-    foreach (j; 0 .. columns)
+    foreach (y; parallel(iota(0, rgba8.h)))
     {
-        result[i, j, 0] = srgbToLinear(rgba[i, j, 0]);
-        result[i, j, 1] = srgbToLinear(rgba[i, j, 1]);
-        result[i, j, 2] = srgbToLinear(rgba[i, j, 2]);
-        result[i, j, 3] = rgba[i, j, 3] / 255.0;
+        foreach (x; 0 .. rgba8.w)
+        {
+            const auto index = (y * rgba8.w + x) * 4;
+            result[y, x, 0] = srgbToLinear(rgba8.pixels[index]);
+            result[y, x, 1] = srgbToLinear(rgba8.pixels[index + 1]);
+            result[y, x, 2] = srgbToLinear(rgba8.pixels[index + 2]);
+            result[y, x, 3] = rgba8.pixels[index + 3] / 255.0;
+        }
     }
 
     return result;
+}
+
+// The interface for tests.
+Slice!(float*, 3) toLinear(Slice!(float*, 3) rgba)
+{
+    import std.conv;
+
+    auto height = to!int(rgba.length!0);
+    auto width = to!int(rgba.length!1);
+
+    auto buffer = new ubyte[height * width * 4];
+
+    foreach (y; 0 .. height)
+    {
+        foreach (x; 0 .. width)
+        {
+            const auto index = (y * width + x) * 4;
+            buffer[index] = to!ubyte(rgba[y, x, 0]);
+            buffer[index + 1] = to!ubyte(rgba[y, x, 1]);
+            buffer[index + 2] = to!ubyte(rgba[y, x, 2]);
+            buffer[index + 3] = to!ubyte(rgba[y, x, 3]);
+        }
+    }
+
+    IFImage image = {
+        w      : width,
+        h      : height,
+        c      : ColFmt.RGBA,
+        pixels : buffer,
+    };
+
+    return toLinear(image);
 }
 
 Slice!(float*, 3) fromLinear(Slice!(float*, 3) linearRgba)

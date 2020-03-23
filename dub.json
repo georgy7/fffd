@@ -3,16 +3,20 @@
 		"Георгий Устинов"
 	],
 	"copyright": "Copyright © 2020, Георгий Устинов",
-	"dependencies": {
-		"fluent-asserts": "~>0.12.5",
-		"dlib": "~>0.18.0",
-		"mir-algorithm": "~>3.7.19"
-	},
-	"dflags-ldc": ["-mcpu=native"],
+	"license": "GNU AGPL 3",
 
-	"description": "D port of flood_fill_filter.",
-	"license": "zlib",
+	"description": "D port of flood-fill-filter pip package.",
+
 	"name": "fffd",
+	"mainSourceFile": "source/app.d",
 
-	"mainSourceFile": "source/app.d"
+	"dependencies": {
+		"imageformats": "~>7.0.2",
+		"mir-algorithm": "~>3.7.19",
+		"fluent-asserts": "~>0.12.5"
+	},
+
+	"dflags-ldc": [
+		"-mcpu=native"
+	]
 }

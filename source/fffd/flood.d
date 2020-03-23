@@ -19,7 +19,7 @@
 module fffd.flood;
 
 import mir.ndslice;
-import dlib.image;
+import imageformats;
 import fffd.linear_srgb_conv;
 import fffd.xyz;
 import fffd.bit_utils;
@@ -30,20 +30,15 @@ import std.range : iota;
 
 Slice!(float*, 3) readLinear(string filePath)
 {
-    ImageRGBA8 image = convert!ImageRGBA8(loadImage(filePath));
-    auto im = slice!float(image.height, image.width, 4);
+    //import core.time : MonoTime;
+    //import std.stdio;
+    //import std.format;
+    //import std.conv;
 
-    foreach (y; 0 .. image.height)
-    {
-        foreach (x; 0 .. image.width)
-        {
-            const auto index = (y * image.width + x) * 4;
-            im[y, x, 0] = image.data()[index];
-            im[y, x, 1] = image.data()[index + 1];
-            im[y, x, 2] = image.data()[index + 2];
-            im[y, x, 3] = image.data()[index + 3];
-        }
-    }
+    //MonoTime before = MonoTime.currTime;
+    IFImage im = read_image(filePath, ColFmt.RGBA);
+    //MonoTime after = MonoTime.currTime;
+    //writeln(format("Image loaded in %s", to!string(after - before)));
 
     return toLinear(im);
 }
@@ -150,24 +145,36 @@ void save(immutable BoolMatrix boolMatrix, in string filename)
 {
     import std.conv;
 
-    ImageL8 result = new ImageL8(to!uint(boolMatrix.length!1), to!uint(boolMatrix.length!0));
+    //import core.time : MonoTime;
+    //import std.stdio;
+    //import std.format;
+    //
+    //MonoTime before = MonoTime.currTime;
 
-    foreach (y; 0 .. result.height)
+    auto height = to!int(boolMatrix.length!0);
+    auto width = to!int(boolMatrix.length!1);
+
+    auto buffer = new ubyte[height * width];
+
+    foreach (y; 0 .. height)
     {
-        foreach (x; 0 .. result.width)
+        foreach (x; 0 .. width)
         {
-            const auto index = (y * result.width + x);
-
             if (boolMatrix[y, x])
             {
-                result.data()[index] = cast(ubyte)255;
+                const auto index = y * width + x;
+                buffer[index] = cast(ubyte)255;
             }
             else
             {
-                result.data()[index] = cast(ubyte)0;
+                const auto index = y * width + x;
+                buffer[index] = cast(ubyte)0;
             }
         }
     }
 
-    saveImage(result, filename);
+    write_png(filename, width, height, buffer, ColFmt.Y);
+
+    //MonoTime after = MonoTime.currTime;
+    //writeln(format("Image saved in %s", to!string(after - before)));
 }
