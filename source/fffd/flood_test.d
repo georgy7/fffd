@@ -41,17 +41,17 @@ version (unittest)
 
     BoolMatrix readExpectedResult(string filePath)
     {
-        import dlib.image;
+        import imageformats;
 
-        ImageL8 image = convert!ImageL8(loadImage(filePath));
-        auto result = slice!bool(image.height, image.width);
+        IFImage image = read_image(filePath, ColFmt.Y);
+        auto result = slice!bool(image.h, image.w);
 
-        foreach (x; image.row)
+        foreach (y; 0 .. image.h)
         {
-            foreach (y; image.col)
+            foreach (x; 0 .. image.w)
             {
-                Color4 color4 = image.getPixel(x, y);
-                result[y, x] = color4[0] > 128;
+                const auto index = y * image.w + x;
+                result[y, x] = image.pixels[index] > 128;
             }
         }
 
