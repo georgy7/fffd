@@ -1,8 +1,13 @@
 # fffd
 
+[![Build Status](https://travis-ci.org/georgy7/fffd.svg?branch=master)](https://travis-ci.org/georgy7/fffd)
+
 D port of [flood-fill-filter](https://github.com/georgy7/flood_fill_filter).
 
 ## Installation
+
+* [dub package manager installation](https://github.com/dlang/dub#installation)
+* [LDC installation](https://github.com/ldc-developers/ldc#installation): it is unacceptably slow with other compilers.
 
 ```sh
 dub build --build=release --compiler=ldc2

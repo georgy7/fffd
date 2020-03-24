@@ -1,0 +1,8 @@
+language: d
+
+os:
+  - linux
+
+d:
+  - ldc-latest-ci
+  - ldc-beta
