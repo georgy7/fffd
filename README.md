@@ -51,7 +51,7 @@ sys     0m0,577s
 
 $ time fffd --denoise samples2/IMG_2164_q40_orig.bmp samples2/out_fffd.png
 
-real    0m0,624s
+real    0m0,762s
 user    0m3,777s
 sys     0m0,072s
 
@@ -59,7 +59,7 @@ $ /usr/bin/time -v flood_fill_filter --denoise samples2/IMG_2164_q40_orig.bmp sa
 	Maximum resident set size (kbytes): 172592
 
 $ /usr/bin/time -v fffd --denoise samples2/IMG_2164_q40_orig.bmp samples2/out_fffd.png |& grep "Maximum resident"
-	Maximum resident set size (kbytes): 61084
+	Maximum resident set size (kbytes): 57676
 ```
 
 ## Commercial use

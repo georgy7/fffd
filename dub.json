@@ -18,6 +18,6 @@
 	},
 
 	"dflags-ldc": [
-		"-mcpu=native"
+		"-link-defaultlib-shared=false"
 	]
 }
