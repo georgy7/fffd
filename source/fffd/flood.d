@@ -47,6 +47,14 @@ Slice!(float*, 3) readLinear(string filePath)
     return toLinear(im);
 }
 
+Slice!(float*, 3) readLinearFromBuffer(in ubyte[] buffer)
+{
+    import std.stdio;
+
+    IFImage im = read_image_from_mem(buffer, ColFmt.RGBA);
+    return toLinear(im);
+}
+
 private pure int lrtb(in int coordinate, in int size, in ubyte kernel_margin) @safe
 {
     import std.algorithm;
@@ -243,4 +251,16 @@ void save(immutable BoolMatrix boolMatrix, in string filename)
 
     //MonoTime after = MonoTime.currTime;
     //writeln(format("Image saved in %s", to!string(after - before)));
+}
+
+void savePngToStdout(immutable BoolMatrix boolMatrix)
+{
+    import std.stdio;
+
+    auto height = to!int(boolMatrix.length!0);
+    auto width = to!int(boolMatrix.length!1);
+
+    auto buffer = buildY(boolMatrix);
+    auto png = write_png_to_mem(width, height, buffer, ColFmt.Y);
+    stdout.rawWrite(png);
 }

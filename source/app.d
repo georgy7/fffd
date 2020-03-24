@@ -22,6 +22,7 @@ import std.math;
 import fffd.flood;
 import fffd.xyz;
 import darg;
+import mir.ndslice;
 
 struct Options
 {
@@ -49,7 +50,7 @@ struct Options
 	OptionFlag denoise;
 
 	@Argument("input")
-	@Help("Input file or \"-\" for reading from STDIN.")
+	@Help("Input file or \"-\" for reading from STDIN (maximum 50 MiB).")
 	string input;
 
 	@Argument("output")
@@ -92,23 +93,32 @@ int main(string[] args)
 			return 1;
 		}
 
-		if ("-" == options.input) {
-			stderr.writeln("Reading from STDIN is not suported yet.");
-			return 1;
+		Slice!(float*, 3) linearInput;
+
+		if ("-" == options.input)
+		{
+			const auto maxSize = 1024 * 1024 * 50;
+			ubyte[] readFromStdin = stdin.rawRead(new ubyte[maxSize + 1]);
+
+			if (readFromStdin.length > maxSize)
+			{
+				stderr.writeln("Maximum STDIN size exceeded.");
+				return 1;
+			}
+
+			linearInput = fffd.flood.readLinearFromBuffer(readFromStdin);
+		}
+		else
+		{
+			linearInput = fffd.flood.readLinear(options.input);
 		}
 
-		if ("-" == options.output) {
-			stderr.writeln("Writing to STDOUT is not suported yet.");
-			return 1;
-		}
-
-		auto linearInput = fffd.flood.readLinear(options.input);
 		immutable BoolMatrix result = fffd.flood.filter(
 			linearInput, options.diff, options.radius, options.activationThreshold, options.denoise
 		);
 
 		if ("-" == options.output) {
-			// TODO
+			savePngToStdout(result);
 		} else {
 			save(result, options.output);
 		}
@@ -117,12 +127,12 @@ int main(string[] args)
 	}
 	catch (ArgParseError e)
 	{
-		writeln();
-		writeln(e.msg);
-		writeln();
-		writeln(usage);
-		writeln();
-		writeln();
+		stderr.writeln();
+		stderr.writeln(e.msg);
+		stderr.writeln();
+		stderr.writeln(usage);
+		stderr.writeln();
+		stderr.writeln();
 		return 1;
 	}
 	catch (ArgParseHelp e)

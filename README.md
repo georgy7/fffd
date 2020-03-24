@@ -7,7 +7,7 @@ D port of [flood-fill-filter](https://github.com/georgy7/flood_fill_filter).
 ## Installation
 
 * [dub package manager installation](https://github.com/dlang/dub#installation)
-* [LDC installation](https://github.com/ldc-developers/ldc#installation): it is unacceptably slow with other compilers.
+* [LDC installation](https://github.com/ldc-developers/ldc#installation)
 
 ```sh
 dub build --build=release --compiler=ldc2
@@ -16,7 +16,7 @@ sudo cp fffd /usr/local/bin/
 
 ## Usage
 
-```sh
+```
 fffd [--help] [--diff=(0, 1) Default: 0.08.]
             [--activation-threshold=(0, 1) Default: 0.45.]
             [--radius=[1, 5] Default: 4.]
