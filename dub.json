@@ -18,6 +18,7 @@
 	},
 
 	"dflags-ldc": [
-		"-link-defaultlib-shared=false"
+		"-link-defaultlib-shared=false",
+		"-relocation-model=pic"
 	]
 }
