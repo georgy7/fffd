@@ -69,7 +69,8 @@ version (unittest)
             .array;
     }
 
-    LoadFileResult[] loadFolder(string folderName, float yThreshold, bool denoise = false)
+    LoadFileResult[] loadFolder(string folderName, float yThreshold,
+            bool function(string) filenamePredicate, bool denoise = false)
     {
         import mir.math.sum : sum;
         import std.format;
@@ -82,6 +83,11 @@ version (unittest)
 
         foreach (i, inputImage; inputList)
         {
+            if (!filenamePredicate(inputImage.name))
+            {
+                continue;
+            }
+
             Slice!(float*, 3) input = fffd.flood.readLinear(inputImage.name);
             BoolMatrix output = fffd.flood.filter(input, yThreshold, 4, 0.45, denoise);
 
@@ -135,7 +141,7 @@ version (unittest)
             BoolMatrix expectedOutput = readExpectedResult(expectedOutputImagePath);
 
             assert(output.length == expectedOutput.length, format("Different shapes: %s, %s.",
-            inputImageFileName, expectedOutputFilename));
+                    inputImageFileName, expectedOutputFilename));
 
             long diffCount = sum(output ^ expectedOutput);
 
@@ -162,7 +168,7 @@ version (unittest)
         import std.format;
         import std.stdio;
 
-        const LoadFileResult[] samples = loadFolder("samples", 0.092);
+        const LoadFileResult[] samples = loadFolder("samples", 0.092, (s) => true);
 
         {
             foreach (image; samples)
@@ -180,7 +186,7 @@ version (unittest)
             {
                 const double diffPerCent = to!double(image.diffCount) / (image.shapeHeight * image.shapeWidth) * 100;
                 assert(diffPerCent < (100 - 99), format("%s %s has %s different pixels (%s%%)",
-                image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
+                        image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
             }
 
             writeln("Test - test_99: Ok.");
@@ -191,7 +197,7 @@ version (unittest)
             {
                 const double diffPerCent = to!double(image.diffCount) / (image.shapeHeight * image.shapeWidth) * 100;
                 assert(diffPerCent < (100 - 99.9), format("%s %s has %s different pixels (%s%%)",
-                image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
+                        image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
             }
 
             writeln("Test - test_999: Ok.");
@@ -202,40 +208,113 @@ version (unittest)
             {
                 const double diffPerCent = to!double(image.diffCount) / (image.shapeHeight * image.shapeWidth) * 100;
                 assert(0.0 == diffPerCent, format("%s %s has %s different pixels (%s%%)",
-                image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
+                        image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
             }
 
             writeln("Test - test_99_plus_one: Ok.");
         }
+    }
 
+    unittest
+    {
+        import std.conv;
+        import std.format;
+        import std.stdio;
+        import std.algorithm.searching;
+
+        const LoadFileResult[] samples2 = loadFolder("samples2", 0.08, (s) => canFind(s, "_q20_"), true);
+
+        assert(samples2.length > 0);
+
+        foreach (image; samples2)
         {
-            // test_2_q20
+            const double diffPerCent = to!double(image.diffCount) / (image.shapeHeight * image.shapeWidth) * 100;
+            assert(0.0 == diffPerCent, format("%s %s has %s different pixels (%s%%)",
+                    image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
         }
 
+        writeln("Test - test_2_q20: Ok.");
+    }
+
+    unittest
+    {
+        import std.conv;
+        import std.format;
+        import std.stdio;
+        import std.algorithm.searching;
+
+        const LoadFileResult[] samples2 = loadFolder("samples2", 0.08, (s) => canFind(s, "_q40_"), true);
+
+        assert(samples2.length > 0);
+
+        foreach (image; samples2)
         {
-            // test_2_q40
+            const double diffPerCent = to!double(image.diffCount) / (image.shapeHeight * image.shapeWidth) * 100;
+            assert(0.0 == diffPerCent, format("%s %s has %s different pixels (%s%%)",
+                    image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
         }
 
+        writeln("Test - test_2_q40: Ok.");
+    }
+
+    unittest
+    {
+        import std.conv;
+        import std.format;
+        import std.stdio;
+        import std.algorithm.searching;
+
+        const LoadFileResult[] samples2 = loadFolder("samples2", 0.08, (s) => canFind(s, "_q70_"), true);
+
+        assert(samples2.length > 0);
+
+        foreach (image; samples2)
         {
-            // test_2_q70
+            const double diffPerCent = to!double(image.diffCount) / (image.shapeHeight * image.shapeWidth) * 100;
+            // By some reason, one pixel is different: x=400, y=3.
+            assert(diffPerCent <= 1, format("%s %s has %s different pixels (%s%%)",
+                    image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
         }
 
+        writeln("Test - test_2_q70: Ok.");
+    }
+
+    unittest
+    {
+        import std.conv;
+        import std.format;
+        import std.stdio;
+        import std.algorithm.searching;
+
+        const LoadFileResult[] samples2 = loadFolder("samples2", 0.08, (s) => canFind(s, "_q100_"), true);
+
+        assert(samples2.length > 0);
+
+        foreach (image; samples2)
         {
-            // test_2_q100
+            const double diffPerCent = to!double(image.diffCount) / (image.shapeHeight * image.shapeWidth) * 100;
+            assert(0.0 == diffPerCent, format("%s %s has %s different pixels (%s%%)",
+                    image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
         }
 
+        writeln("Test - test_2_q100: Ok.");
+    }
+
+    unittest
+    {
+        import std.conv;
+        import std.format;
+        import std.stdio;
+
+        const LoadFileResult[] denoiseSamples = loadSamples3();
+
+        foreach (image; denoiseSamples)
         {
-            const LoadFileResult[] denoiseSamples = loadSamples3();
-
-            foreach (image; denoiseSamples)
-            {
-                const double diffPerCent = to!double(image.diffCount) / (image.shapeHeight * image.shapeWidth) * 100;
-                assert(0.0 == diffPerCent, format("%s %s has %s different pixels (%s%%)",
-                image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
-            }
-
-            writeln("Test - test_denoise: Ok.");
+            const double diffPerCent = to!double(image.diffCount) / (image.shapeHeight * image.shapeWidth) * 100;
+            assert(0.0 == diffPerCent, format("%s %s has %s different pixels (%s%%)",
+                    image.file.name, image.outputFile.name, image.diffCount, diffPerCent));
         }
 
+        writeln("Test - test_denoise: Ok.");
     }
 }
