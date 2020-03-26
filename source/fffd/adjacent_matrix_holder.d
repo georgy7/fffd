@@ -147,11 +147,20 @@ class AdjacentMatrixHolder
     {
         Bitmask result;
 
-        foreach (i; 0 .. 128)
+        ulong bit;
+
+        static foreach (part; 0 .. 2)
         {
-            if (thisStepResult.isSet(i))
+            bit = 0b1UL;
+
+            static foreach (i; 0 .. 64)
             {
-                result = or(result, this.matrix[i]);
+                if ((thisStepResult.a[part] & bit) != 0)
+                {
+                    result = or(result, this.matrix[64 * part + i]);
+                }
+
+                bit *= 2;
             }
         }
 
