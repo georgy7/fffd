@@ -58,11 +58,11 @@ class Xyz
     {
         if (this.yXYZ.isNull)
         {
-            return this.boolLightness.length!dimension;
+            return this.boolLightness.get.length!dimension;
         }
         else
         {
-            return this.yXYZ.length!dimension;
+            return this.yXYZ.get.length!dimension;
         }
     }
 
