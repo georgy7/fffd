@@ -61,9 +61,3 @@ $ /usr/bin/time -v flood_fill_filter --denoise samples2/IMG_2164_q40_orig.bmp sa
 $ /usr/bin/time -v fffd --denoise samples2/IMG_2164_q40_orig.bmp samples2/out_fffd.png |& grep "Maximum resident"
 	Maximum resident set size (kbytes): 57676
 ```
-
-## Commercial use
-
-All the code in this repository is written by one person.
-So you may buy a non-exclusive right to use it in a closed-source products.
-Copyright owner: Georgy Ustinov <georgy.ustinov.hello@gmail.com>
